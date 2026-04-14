@@ -32,7 +32,11 @@ export async function execute(params: {
   asr_method?: string;
 }) {
   let lat: number, lon: number, tz: string, method: string, asr: "Shafi" | "Hanafi";
-  
+
+  if (!params.location && !params.latitude && !params.longitude) {
+    params.location = "Makkah";
+  }
+
   if (params.location) {
     const loc = parseLocation(params.location);
     if (!loc) return { content: [{ type: "text", text: `Unknown location: ${params.location}` }] };

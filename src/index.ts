@@ -15,6 +15,7 @@ import * as getMoonPhase from "./tools/get_moon_phase.js";
 import * as getSunPosition from "./tools/get_sun_position.js";
 import * as getUpcomingEvents from "./tools/get_upcoming_events.js";
 import * as getHolidaysWorldwide from "./tools/get_holidays_worldwide.js";
+import * as getTodaysFullReport from "./tools/get_todays_full_report.js";
 
 const server = new McpServer({ name: "date-mcp", version: "1.0.0" });
 
@@ -31,6 +32,7 @@ server.tool("get_moon_phase", getMoonPhase.description, getMoonPhase.schema, asy
 server.tool("get_sun_position", getSunPosition.description, getSunPosition.schema, async () => getSunPosition.execute());
 server.tool("get_upcoming_events", getUpcomingEvents.description, getUpcomingEvents.schema, async () => getUpcomingEvents.execute());
 server.tool("get_holidays_worldwide", getHolidaysWorldwide.description, getHolidaysWorldwide.schema, async p => getHolidaysWorldwide.execute(p));
+server.tool("get_todays_full_report", getTodaysFullReport.description, getTodaysFullReport.schema, async () => getTodaysFullReport.execute());
 
 async function main() {
   const transport = new StdioServerTransport();

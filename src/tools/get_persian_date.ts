@@ -5,17 +5,12 @@ const toolSchema = {};
 
 export const description = "Get current Persian/Solar Hijri (Jalali) calendar date";
 
-const PERSIAN_MONTHS = [
-  "Farvardin", "Ordibehesht", "Khordad", "Tir",
-  "Mordad", "Shahrivar", "Mehr", "Aban",
-  "Azar", "Dey", "Bahman", "Esfand",
-];
+const PERSIAN_MONTHS = ["Farvardin", "Ordibehesht", "Khordad", "Tir", "Mordad", "Shahrivar", "Mehr", "Aban", "Azar", "Dey", "Bahman", "Esfand"];
+const PERSIAN_WEEKDAYS = ["Yekshanbeh", "Doshanbeh", "Seshanbeh", "Chaharshanbeh", "Panjshanbeh", "Jomeh", "Shanbeh"];
 
 export async function execute() {
   const now = new Date();
   const [py, pm, pd] = gregorianToPersian(now.getFullYear(), now.getMonth() + 1, now.getDate());
-
-  const PERSIAN_WEEKDAYS = ["Yekshanbeh", "Doshanbeh", "Seshanbeh", "Chaharshanbeh", "Panjshanbeh", "Jomeh", "Shanbeh"];
 
   const lines = [
     `**Persian (Jalali) Calendar Date**`,

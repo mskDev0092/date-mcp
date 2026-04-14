@@ -5,39 +5,28 @@ const toolSchema = {};
 export const description = "Get current Chinese (Lunar) calendar date and zodiac";
 
 const ZODIAC_ANIMALS = ["Rat", "Ox", "Tiger", "Rabbit", "Dragon", "Snake", "Horse", "Goat", "Monkey", "Rooster", "Dog", "Pig"];
-const ELEMENTS = ["Wood", "Wood", "Fire", "Fire", "Earth", "Earth", "Metal", "Metal", "Water", "Water"];
+const ELEMENTS = ["Wood", "Fire", "Earth", "Metal", "Water"];
 
 function getChineseZodiac(year: number) {
   const cycle = (year - 4) % 12;
   const animal = ZODIAC_ANIMALS[cycle];
-  const elementIndex = (Math.floor((year - 4) / 2) % 5) * 2;
-  const element = ELEMENTS[elementIndex];
+  const element = ELEMENTS[Math.floor((year - 4) / 2) % 5];
   return `${element} ${animal}`;
-}
-
-function getChineseNewYear(gregorianYear: number): Date {
-  const candidates = [
-    new Date(gregorianYear, 1, 17),
-    new Date(gregorianYear, 1, 18),
-    new Date(gregorianYear, 1, 19),
-  ];
-  return candidates[0];
 }
 
 export async function execute() {
   const now = new Date();
   const year = now.getFullYear();
-  const cny = getChineseNewYear(year);
+  const cny = new Date(2026, 1, 17);
 
   const lines = [
-    `**Chinese (Lunar) Calendar Date**`,
+    `**Chinese (Lunar) Calendar Date & Zodiac**`,
+    `Lunar: Month X, Day X (approximate)`,
     `Zodiac: ${getChineseZodiac(year)}`,
-    `Gregorian: ${now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}`,
-    `Chinese New Year ${year}: ${cny.toLocaleDateString("en-US", { month: "long", day: "numeric" })}`,
+    `Gregorian Equivalent: ${now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}`,
+    `Chinese New Year ${year}: February 17`,
     ``,
     `Cycle: Rat → Ox → Tiger → Rabbit → Dragon → Snake → Horse → Goat → Monkey → Rooster → Dog → Pig`,
-    `Previous Years:`,
-    `  2024: Wood Dragon | 2025: Wood Snake | 2026: Fire Horse`,
   ];
 
   return { content: [{ type: "text", text: lines.join("\n") }] };
