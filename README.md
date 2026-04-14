@@ -146,7 +146,7 @@ Then in your MCP config:
 
 ---
 
-## Available Tools (13 total)
+## Available Tools (14 total)
 
 | Tool | Description | Example Parameters |
 |------|-------------|-------------------|
@@ -163,6 +163,7 @@ Then in your MCP config:
 | `get_sun_position` | Sun position | `{}` |
 | `get_upcoming_events` | Astronomical events | `{}` |
 | `get_holidays_worldwide` | Holidays by region | `{"region": "middle_east"}` |
+| `get_todays_full_report` | Complete daily report | `{}` |
 
 ### Prayer Times Methods
 
@@ -185,6 +186,108 @@ Once configured, ask your model things like:
 - "What is the current moon phase?"
 - "What is the Chinese zodiac for this year?"
 - "What is today's Persian date?"
+
+---
+
+## Stress Test Questions
+
+Test all tools with these comprehensive questions:
+
+### Gregorian & Basic Dates
+```
+- What is today's date and time in UTC?
+- What is the current date in America/New_York timezone?
+- What day of the week is it? What week number is this?
+- Is this a leap year?
+- What is the Unix timestamp right now?
+```
+
+### Hijri (Islamic) Calendar
+```
+- What is today's Hijri date?
+- What month is it in the Islamic calendar?
+- What is the weekday name in Arabic?
+- Convert Gregorian April 14, 2026 to Hijri
+- What is 1 Ramadan 1447 AH in Gregorian?
+```
+
+### Persian (Jalali) Calendar
+```
+- What is today's Persian date?
+- What is the Persian weekday name?
+- Convert today's Gregorian date to Persian
+- When is Nowruz this year?
+- What month is Farvardin?
+```
+
+### Chinese & Zodiac
+```
+- What is the Chinese zodiac for this year?
+- When is Chinese New Year this year?
+- What animal comes after Horse in the cycle?
+- What element is 2026?
+- Show the full 12-year Chinese zodiac cycle
+```
+
+### Prayer Times
+```
+- What are the prayer times for Makkah today?
+- What is Fajr time in Karachi?
+- Get prayer times for Lahore
+- What is Asr time in Dubai?
+- Get Fajr for 33.5, 73.0 (coordinates)
+- Show prayer times for Istanbul
+- What method is used for Pakistan?
+- Get Fajr with Hanafi Asr method
+```
+
+### Islamic Events
+```
+- When is Eid al-Fitr this year?
+- When is Eid al-Adha?
+- When does Ramadan start?
+- What is Laylat al-Qadr?
+- Show all Islamic events for 1447 AH
+- When is Ashura?
+- What is Mawlid al-Nabi?
+```
+
+### Moon & Astronomy
+```
+- What is the current moon phase?
+- What is the moon illumination percentage?
+- When is the next New Moon?
+- When is the next Full Moon?
+- Show upcoming moon phases
+- What is the moon's age?
+- Get the sun's current position
+```
+
+### Date Conversion
+```
+- Convert 2024-03-10 to Hijri
+- Convert 1445/01/01 AH to Gregorian
+- What is 1405/01/01 in Gregorian?
+- Show today's date in all calendars
+```
+
+### Holidays
+```
+- What holidays are in December?
+- Show national holidays for Pakistan
+- What holidays are in the Middle East?
+- Any cultural holidays in Asia?
+```
+
+### Edge Cases & Combinations
+```
+- Get prayer times for an unknown city - what happens?
+- Convert an invalid date - does it handle gracefully?
+- Request prayer times without location - does it default?
+- Get Eid dates for 10 years ahead
+- Show Ramadan for a past year
+- What happens with extreme coordinates (90°N)?
+```
 
 ## Tech Stack
 
