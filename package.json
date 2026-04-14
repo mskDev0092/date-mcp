@@ -1,0 +1,25 @@
+{
+  "name": "date-mcp",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Multi-tool MCP server for dates, calendars (Gregorian, Hijri, Chinese, Persian), prayer times, moon phases, and astronomical calculations",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "bun run src/index.ts",
+    "start": "bun run src/index.ts",
+    "build": "bun build src/index.ts --outdir dist --target bun"
+  },
+  "keywords": ["mcp", "date", "calendar", "hijri", "prayer-times", "moon-phase", "astronomy"],
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "moment": "^2.30.1",
+    "moment-hijri": "^2.1.2",
+    "astronomy-engine": "^2.1.2",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.2.8",
+    "@types/moment": "^2.13.0"
+  }
+}
