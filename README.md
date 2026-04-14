@@ -146,19 +146,23 @@ Then in your MCP config:
 
 ---
 
-## Available Tools
+## Available Tools (13 total)
 
 | Tool | Description | Example Parameters |
 |------|-------------|-------------------|
-| `get_gregorian_date` | Current Gregorian date/time with timezone | `{"timezone": "America/New_York"}` |
+| `get_gregorian_date` | Current Gregorian date/time | `{"timezone": "UTC"}` |
 | `get_hijri_date` | Current Hijri (Islamic) date | `{"locale": "en"}` |
-| `get_chinese_date` | Current Chinese (Lunar) calendar date | `{}` |
 | `get_persian_date` | Current Persian (Jalali) date | `{}` |
-| `get_moon_phase` | Current moon phase & upcoming phases | `{}` |
-| `get_prayer_times` | Islamic prayer times for a location | `{"latitude": 21.4225, "longitude": 39.8262, "method": "Makkah", "timezone": "Asia/Riyadh"}` |
-| `get_sun_position` | Sun's astronomical position | `{"latitude": 0, "longitude": 0}` |
-| `convert_date` | Convert between calendars | `{"calendar": "hijri", "year": 1447, "month": 9, "day": 1}` |
-| `get_upcoming_events` | Upcoming astronomical events | `{}` |
+| `get_chinese_date` | Current Chinese (Lunar) calendar | `{}` |
+| `convert_date` | Convert between calendars | `{"calendar": "gregorian", "year": 2024, "month": 3, "day": 10}` |
+| `get_eid_dates` | Eid al-Fitr & Eid al-Adha dates | `{"year": 2024, "count": 3}` |
+| `get_islamic_events` | Islamic events for Hijri year | `{"year": 1446}` |
+| `get_ramadan_times` | Ramadan dates & Laylat al-Qadr | `{"year": 2024}` |
+| `get_prayer_times` | Prayer times for location | `{"location": "Karachi"}` or `{"latitude": 33.5, "longitude": 73.0}` |
+| `get_moon_phase` | Current moon phase | `{}` |
+| `get_sun_position` | Sun position | `{}` |
+| `get_upcoming_events` | Astronomical events | `{}` |
+| `get_holidays_worldwide` | Holidays by region | `{"region": "middle_east"}` |
 
 ### Prayer Times Methods
 

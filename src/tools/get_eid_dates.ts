@@ -1,6 +1,5 @@
 import moment from "moment-hijri";
 import { z } from "zod";
-import { gregorianToHijri, hijriToGregorian, getHijriMonthName } from "../lib/dates.js";
 
 const toolSchema = {
   year: z.number().optional().describe("Start Gregorian year (default: current)"),
@@ -21,22 +20,30 @@ export async function execute(params: { year?: number; count?: number }) {
   ];
 
   for (let y = currentYear; y < currentYear + yearCount; y++) {
-    const eidFitrGreg = hijriToGregorian(y, 10, 1);
-    const eidFitrHijri = gregorianToHijri(eidFitrGreg);
+    const eidFitr = moment(`${y}-10-01`, "iYYYY-iMM-DD");
+    const eidAdha = moment(`${y}-12-10`, "iYYYY-iMM-DD");
     
-    const eidAdhaGreg = hijriToGregorian(y, 12, 10);
-    const eidAdhaHijri = gregorianToHijri(eidAdhaGreg);
+    const eidFitrGreg = eidFitr.toDate();
+    const eidAdhaGreg = eidAdha.toDate();
+
+    const eFYear = eidFitr.iYear();
+    const eAMonth = eidFitr.iMonth();
+    const eADay = eidFitr.iDate();
+    
+    const aHYear = eidAdha.iYear();
+    const aAMonth = eidAdha.iMonth();
+    const aADay = eidAdha.iDate();
 
     lines.push(
       `=== ${y} ===`,
       ``,
-      `Eid al-Fitr:`,
-      `   Gregorian: ${eidFitrGreg.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}`,
-      `   Hijri: ${eidFitrHijri.year} AH, ${getHijriMonthName(eidFitrHijri.month)} ${eidFitrHijri.day}`,
+      `Eid al-Fitr (عيدالفطر):`,
+      `   Gregorian: ${eidFitr.format("dddd, MMMM D, YYYY")}`,
+      `   Hijri: ${eFYear} AH, ${eidFitr.format("iMMMM")} ${eADay}`,
       ``,
-      `Eid al-Adha:`,
-      `   Gregorian: ${eidAdhaGreg.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}`,
-      `   Hijri: ${eidAdhaHijri.year} AH, ${getHijriMonthName(eidAdhaHijri.month)} ${eidAdhaHijri.day}`,
+      `Eid al-Adha (عيدالأضحى):`,
+      `   Gregorian: ${eidAdha.format("dddd, MMMM D, YYYY")}`,
+      `   Hijri: ${aHYear} AH, ${eidAdha.format("iMMMM")} ${aADay}`,
       ``,
     );
   }

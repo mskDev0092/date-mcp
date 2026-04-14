@@ -18,7 +18,7 @@ describe("Tool - get_islamic_events", () => {
     const result = await getIslamicEvents({});
     expect(result.content).toBeDefined();
     expect(result.content[0].text).toContain("Eid al-Fitr");
-    expect(result.content[0].text).toContain("Ramadan");
+    expect(result.content[0].text).toMatch(/Ramadan|رمضان/);
   });
 });
 

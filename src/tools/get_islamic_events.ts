@@ -1,6 +1,5 @@
 import moment from "moment-hijri";
 import { z } from "zod";
-import { gregorianToHijri, hijriToGregorian, getHijriMonthName } from "../lib/dates.js";
 
 const toolSchema = {
   year: z.number().optional().describe("Hijri year (default: current)"),
@@ -22,28 +21,29 @@ const ISLAMIC_EVENTS = [
 
 export async function execute(params: { year?: number }) {
   const now = new Date();
-  const currentHijri = gregorianToHijri(now);
+  const m = moment(now);
+  const currentHijri = { year: m.iYear(), month: m.iMonth() + 1, day: m.iDate() };
   const hijriYear = params.year || currentHijri.year;
 
   const lines = [
     `**Islamic Calendar Events**`,
     `Current: ${now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}`,
-    `Current Hijri: ${currentHijri.year} AH, ${getHijriMonthName(currentHijri.month)} ${currentHijri.day}`,
+    `Current Hijri: ${currentHijri.year} AH, ${m.format("iMMMM")} ${currentHijri.day}`,
     ``,
     `Hijri Year ${hijriYear} AH:`,
     ``,
   ];
 
   for (const evt of ISLAMIC_EVENTS) {
-    const gregDate = hijriToGregorian(hijriYear, evt.hMonth, evt.hDay);
-    const computedHijri = gregorianToHijri(gregDate);
+    const hijriDate = moment(`${hijriYear}-${evt.hMonth.toString().padStart(2, "0")}-${evt.hDay.toString().padStart(2, "0")}`, "iYYYY-iMM-iDD");
+    const gregDate = hijriDate.toDate();
     const isPast = gregDate < now;
     const daysUntil = Math.ceil((gregDate.getTime() - now.getTime()) / 86400000);
 
     lines.push(
       `${isPast ? "✓" : "○"} ${evt.name}`,
-      `   Hijri: ${computedHijri.year} AH, ${getHijriMonthName(computedHijri.month)} ${computedHijri.day}`,
-      `   Gregorian: ${gregDate.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" })}`,
+      `   Hijri: ${hijriDate.format("iYYYY")} AH, ${hijriDate.format("iMMMM")} ${hijriDate.format("iDD")}`,
+      `   Gregorian: ${hijriDate.format("dddd, MMMM D, YYYY")}`,
       `   ${daysUntil < 0 ? Math.abs(daysUntil) + " days ago" : daysUntil === 0 ? "TODAY!" : daysUntil + " days away"}`,
       ``,
     );
