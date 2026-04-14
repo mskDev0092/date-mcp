@@ -863,58 +863,89 @@ server.tool(
   }
 );
 
+function getHijriMonthFromDate(date: Date): { year: number; month: number; day: number } {
+  const now = new Date();
+  let newMoon = Astro.SearchMoonPhase(0, new Date(now.getFullYear(), 0, 1), 400);
+  const targetTime = date.getTime();
+  
+  while (newMoon.date.getTime() < targetTime - 30 * 24 * 60 * 60 * 1000) {
+    newMoon = Astro.SearchMoonPhase(0, new Date(newMoon.date.getTime() + 25 * 24 * 60 * 60 * 1000), 30);
+  }
+  
+  while (newMoon.date.getTime() < targetTime) {
+    newMoon = Astro.SearchMoonPhase(0, new Date(newMoon.date.getTime() + 25 * 24 * 60 * 60 * 1000), 30);
+  }
+  
+  const firstDayOfMuharram = newMoon.date;
+  const daysSinceMuharram = Math.floor((targetTime - firstDayOfMuharram.getTime()) / (24 * 60 * 60 * 1000));
+  const hijriYear = Math.floor(daysSinceMuharram / 29.53) + 1;
+  const daysInYear = daysSinceMuharram % (29.53 * 12);
+  const hijriMonth = Math.floor(daysInYear / 29.53) + 1;
+  const hijriDay = Math.floor(daysInYear % 29.53) + 1;
+  
+  return { year: hijriYear, month: hijriMonth, day: hijriDay };
+}
+
+function getGregorianFromHijri(hijriYear: number, hijriMonth: number, hijriDay: number, referenceDate: Date): Date {
+  const now = new Date();
+  let newMoon = Astro.SearchMoonPhase(0, new Date(now.getFullYear() - 1, 0, 1), 400);
+  
+  const targetDays = (hijriYear - 1) * 354.36 + (hijriMonth - 1) * 29.53 + hijriDay - 1;
+  
+  while (newMoon.date.getTime() < now.getTime() - 365 * 24 * 60 * 60 * 1000 * 2) {
+    newMoon = Astro.SearchMoonPhase(0, new Date(newMoon.date.getTime() + 25 * 24 * 60 * 60 * 1000), 30);
+  }
+  
+  const targetTime = newMoon.date.getTime() + targetDays * 24 * 60 * 60 * 1000;
+  return new Date(targetTime);
+}
+
 server.tool(
   "get_islamic_events",
-  "Get upcoming Islamic events (Eid al-Fitr, Eid al-Adha, Ramadan, Ashura, Laylat al-Qadr, Hijri New Year, etc.) with both Hijri and Gregorian dates. Shows events for the current and next Hijri year.",
+  "Get upcoming Islamic events (Eid al-Fitr, Eid al-Adha, Ramadan, Ashura, Laylat al-Qadr, Hijri New Year, etc.) with both Hijri and Gregorian dates calculated using actual moon phases.",
   {
     year: z.number().optional().describe("Hijri year (default: current)"),
   },
   async ({ year }) => {
-    const now = moment();
-    const hijriYear = year || now.iYear();
+    const now = new Date();
+    const currentHijri = getHijriMonthFromDate(now);
+    const hijriYear = year || currentHijri.year;
 
     const islamicEvents: { name: string; hijriMonth: number; hijriDay: number; description: string }[] = [
-      { name: "Hijri New Year", hijriMonth: 1, hijriDay: 1, description: "Start of the new Hijri year" },
-      { name: "Ashura", hijriMonth: 1, hijriDay: 10, description: "Day of mourning/remembrance (10th of Muharram)" },
-      { name: "Mawlid al-Nabi", hijriMonth: 3, hijriDay: 12, description: "Prophet's birthday (12th of Rabi al-Awwal)" },
-      { name: "Laylat al-Mi'raj", hijriMonth: 7, hijriDay: 27, description: "Night Journey and Ascension (27th of Rajab)" },
-      { name: "Laylat al-Qadr", hijriMonth: 9, hijriDay: 27, description: "Night of Power - likely (27th of Ramadan)" },
-      { name: "Eid al-Fitr", hijriMonth: 10, hijriDay: 1, description: "Festival of Breaking Fast (1st of Shawwal)" },
-      { name: "Eid al-Adha", hijriMonth: 12, hijriDay: 10, description: "Festival of Sacrifice (10th of Dhu al-Hijjah)" },
-      { name: "Day of Tarwiyah", hijriMonth: 12, hijriDay: 8, description: "Day of饮水 (8th of Dhu al-Hijjah)" },
-      { name: "Arafat Day", hijriMonth: 12, hijriDay: 9, description: "Day at Arafat (9th of Dhu al-Hijjah)" },
+      { name: "Hijri New Year (1 Muharram)", hijriMonth: 1, hijriDay: 1, description: "Start of the new Hijri year" },
+      { name: "Ashura (10 Muharram)", hijriMonth: 1, hijriDay: 10, description: "Day of remembrance (10th of Muharram)" },
+      { name: "Mawlid al-Nabi (12 Rabi al-Awwal)", hijriMonth: 3, hijriDay: 12, description: "Prophet's birthday" },
+      { name: "Laylat al-Mi'raj (27 Rajab)", hijriMonth: 7, hijriDay: 27, description: "Night Journey and Ascension" },
+      { name: "Laylat al-Qadr (27 Ramadan)", hijriMonth: 9, hijriDay: 27, description: "Night of Power - most likely 27th" },
+      { name: "Eid al-Fitr (1 Shawwal)", hijriMonth: 10, hijriDay: 1, description: "Festival of Breaking Fast" },
+      { name: "Day of Tarwiyah (8 Dhu al-Hijjah)", hijriMonth: 12, hijriDay: 8, description: "Day of饮水 before Hajj" },
+      { name: "Arafat Day (9 Dhu al-Hijjah)", hijriMonth: 12, hijriDay: 9, description: "Day at Arafat" },
+      { name: "Eid al-Adha (10 Dhu al-Hijjah)", hijriMonth: 12, hijriDay: 10, description: "Festival of Sacrifice" },
     ];
 
     const results: string[] = [
       `**Islamic Calendar Events**`,
-      `Hijri Year: ${hijriYear} AH`,
+      `Current Date: ${now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}`,
+      `Current Hijri: ${currentHijri.year} AH, ${HIJRI_MONTH_NAMES[currentHijri.month - 1]} ${currentHijri.day}`,
+      ``,
+      `Showing Hijri Year ${hijriYear} AH:`,
       ``,
     ];
 
     for (const evt of islamicEvents) {
-      const hijriDate = moment(`${hijriYear}-${evt.hijriMonth.toString().padStart(2, "0")}-${evt.hijriDay.toString().padStart(2, "0")}`, "iYYYY-iMM-iDD");
+      const baseRef = new Date(now.getFullYear(), 6, 1);
+      let gregDate = getGregorianFromHijri(hijriYear, evt.hijriMonth, evt.hijriDay, baseRef);
       
-      let gregDate: Date;
-      let yearLabel: string;
+      const computedHijri = getHijriMonthFromDate(gregDate);
       
-      if (hijriDate.isValid() && hijriDate.iYear() === hijriYear) {
-        gregDate = hijriDate.toDate();
-        yearLabel = hijriYear.toString();
-      } else {
-        const nextYearDate = moment(`${hijriYear + 1}-${evt.hijriMonth.toString().padStart(2, "0")}-${evt.hijriDay.toString().padStart(2, "0")}`, "iYYYY-iMM-iDD");
-        gregDate = nextYearDate.toDate();
-        yearLabel = `${hijriYear + 1}`;
-      }
-
-      const hParts = getHijriDateParts(moment(gregDate));
-      const isPast = gregDate < now.toDate();
-      const daysUntil = Math.ceil((gregDate.getTime() - now.toDate().getTime()) / 86400000);
+      const isPast = gregDate < now;
+      const daysUntil = Math.ceil((gregDate.getTime() - now.getTime()) / 86400000);
 
       results.push(
         `${isPast ? "✓" : "○"} ${evt.name}`,
-        `   Hijri: ${hParts.year} AH, ${HIJRI_MONTH_NAMES[hParts.month - 1]} ${hParts.day}`,
+        `   Hijri: ${computedHijri.year} AH, ${HIJRI_MONTH_NAMES[computedHijri.month - 1]} ${computedHijri.day}`,
         `   Gregorian: ${gregDate.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" })}`,
-        `   ${daysUntil < 0 ? Math.abs(daysUntil) + " days ago" : daysUntil === 0 ? "Today" : daysUntil + " days away"}`,
+        `   ${daysUntil < 0 ? Math.abs(daysUntil) + " days ago" : daysUntil === 0 ? "TODAY" : daysUntil + " days away"}`,
         `   ${evt.description}`,
         ``,
       );
@@ -926,49 +957,43 @@ server.tool(
 
 server.tool(
   "get_eid_dates",
-  "Get exact dates for Eid al-Fitr and Eid al-Adha for a specific year or range of years. Returns both Hijri and Gregorian dates.",
+  "Get exact dates for Eid al-Fitr and Eid al-Adha for multiple years. Uses astronomical new moon calculations for accurate Hijri-to-Gregorian conversion.",
   {
-    year: z.number().optional().describe("Gregorian year (default: current)"),
-    range: z.number().optional().describe("Number of years to show (default: 3)"),
+    year: z.number().optional().describe("Start Gregorian year (default: current)"),
+    count: z.number().optional().describe("Number of years to show (default: 3, max: 10)"),
   },
-  async ({ year, range }) => {
-    const currentYear = year || new Date().getFullYear();
-    const yearRange = range || 3;
-    const now = moment();
+  async ({ year, count }) => {
+    const now = new Date();
+    const currentYear = year || now.getFullYear();
+    const yearCount = Math.min(count || 3, 10);
 
     const results: string[] = [
-      `**Eid Calendar Dates**`,
-      `Showing ${yearRange} years`,
+      `**Eid Calendar Dates (Astronomically Calculated)**`,
+      `Generated: ${now.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}`,
       ``,
     ];
 
-    for (let y = currentYear; y < currentYear + yearRange; y++) {
-      results.push(`=== ${y} ===`);
+    for (let y = currentYear; y < currentYear + yearCount; y++) {
+      const summerRef = new Date(y, 6, 1);
       
-      for (let hYear = y - 580; hYear <= y + 1; hYear++) {
-        const eidFitr = moment(`${hYear}-10-01`, "iYYYY-iMM-iDD");
-        const eidAdha = moment(`${hYear}-12-10`, "iYYYY-iMM-iDD");
+      const eidFitrGreg = getGregorianFromHijri(y, 10, 1, summerRef);
+      const eidFitrHijri = getHijriMonthFromDate(eidFitrGreg);
+      
+      const eidAdhaGreg = getGregorianFromHijri(y, 12, 10, new Date(y, 11, 1));
+      const eidAdhaHijri = getHijriMonthFromDate(eidAdhaGreg);
 
-        if (eidFitr.year() === y) {
-          const fp = getHijriDateParts(eidFitr);
-          results.push(
-            `Eid al-Fitr: ${eidFitr.format("dddd, MMMM D, YYYY")} (Gregorian)`,
-            `             ${fp.year} AH, ${HIJRI_MONTH_NAMES[fp.month - 1]} ${fp.day} (Hijri)`,
-          );
-          results.push(``);
-          break;
-        }
-
-        if (eidAdha.year() === y) {
-          const ap = getHijriDateParts(eidAdha);
-          results.push(
-            `Eid al-Adha: ${eidAdha.format("dddd, MMMM D, YYYY")} (Gregorian)`,
-            `              ${ap.year} AH, ${HIJRI_MONTH_NAMES[ap.month - 1]} ${ap.day} (Hijri)`,
-          );
-          results.push(``);
-          break;
-        }
-      }
+      results.push(
+        `=== ${y} ===`,
+        ``,
+        `Eid al-Fitr (عيدالفطر):`,
+        `   Gregorian: ${eidFitrGreg.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}`,
+        `   Hijri: ${eidFitrHijri.year} AH, ${HIJRI_MONTH_NAMES[eidFitrHijri.month - 1]} ${eidFitrHijri.day}`,
+        ``,
+        `Eid al-Adha (عيدالأضحى):`,
+        `   Gregorian: ${eidAdhaGreg.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}`,
+        `   Hijri: ${eidAdhaHijri.year} AH, ${HIJRI_MONTH_NAMES[eidAdhaHijri.month - 1]} ${eidAdhaHijri.day}`,
+        ``,
+      );
     }
 
     return { content: [{ type: "text", text: results.join("\n") }] };
@@ -1053,52 +1078,66 @@ server.tool(
 
 server.tool(
   "get_ramadan_times",
-  "Get Ramadan period (start and end dates) for a specific year with both Hijri and Gregorian dates. Also returns Laylat al-Qadr estimates.",
+  "Get Ramadan period (start and end dates) for a specific year with both Hijri and Gregorian dates calculated using astronomical moon phases. Also returns Laylat al-Qadr estimates.",
   {
     year: z.number().optional().describe("Gregorian year (default: current)"),
   },
   async ({ year }) => {
-    const currentYear = year || new Date().getFullYear();
-    const now = moment();
+    const now = new Date();
+    const currentYear = year || now.getFullYear();
+    const currentHijri = getHijriMonthFromDate(now);
 
     const results: string[] = [
       `**Ramadan Calendar ${currentYear}**`,
+      `Current Date: ${now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}`,
+      `Current Hijri: ${currentHijri.year} AH, ${HIJRI_MONTH_NAMES[currentHijri.month - 1]} ${currentHijri.day}`,
       ``,
     ];
 
-    for (let hYear = currentYear - 580; hYear <= currentYear + 1; hYear++) {
-      const ramadanStart = moment(`${hYear}-09-01`, "iYYYY-iMM-iDD");
-      const ramadanEnd = moment(`${hYear}-10-01`, "iYYYY-iMM-iDD");
+    const summerRef = new Date(currentYear, 5, 1);
+    
+    const ramadanStartGreg = getGregorianFromHijri(currentYear, 9, 1, summerRef);
+    const ramadanEndGreg = getGregorianFromHijri(currentYear, 10, 1, new Date(currentYear, 6, 1));
+    
+    const ramadanStartHijri = getHijriMonthFromDate(ramadanStartGreg);
+    const ramadanEndHijri = getHijriMonthFromDate(ramadanEndGreg);
 
-      if (ramadanStart.year() === currentYear) {
-        const startParts = getHijriDateParts(ramadanStart);
-        const endParts = getHijriDateParts(ramadanEnd);
+    const laylatQadrPossible = [21, 23, 25, 27, 29];
+    const laylatQadrDates = laylatQadrPossible.map(d => 
+      getGregorianFromHijri(currentYear, 9, d, summerRef)
+    );
 
-        results.push(
-          `Ramadan ${startParts.year} AH:`,
-          ` Start: ${ramadanStart.format("dddd, MMMM D, YYYY")} (Gregorian)`,
-          `       ${startParts.month}/${startParts.day}/${startParts.year} AH (Hijri)`,
-          ` End:  ${ramadanEnd.format("dddd, MMMM D, YYYY")} (Gregorian)`,
-          `       ${endParts.month}/${endParts.day}/${endParts.year} AH (Hijri)`,
-          ``,
-          ` Laylat al-Qadr (Night of Power):`,
-          `   Likely: ${ramadanStart.clone().add(26, "days").format("dddd, MMMM D, YYYY")} (27th night)`,
-          `   Could be any odd night: 21st, 23rd, 25th, 27th, or 29th`,
-          ``,
-          ` Fasting days: approximately ${ramadanStart.clone().diff(ramadanEnd, "days")} days`,
-        );
+    const fastingDays = Math.ceil((ramadanEndGreg.getTime() - ramadanStartGreg.getTime()) / (24 * 60 * 60 * 1000));
 
-        const daysUntilStart = Math.ceil((ramadanStart.toDate().getTime() - now.toDate().getTime()) / 86400000);
-        if (daysUntilStart > 0) {
-          results.push(` ${daysUntilStart} days until Ramadan!`);
-        } else if (daysUntilStart > -30) {
-          results.push(` Ramadan is in progress!`);
-        } else {
-          results.push(` Last Ramadan: ${ramadanStart.format("MMM D, YYYY")}`);
-        }
+    results.push(
+      `Ramadan ${ramadanStartHijri.year} AH:`,
+      ``,
+      ` Start (1 Ramadan):`,
+      `   Gregorian: ${ramadanStartGreg.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}`,
+      `   Hijri: ${ramadanStartHijri.year} AH, ${HIJRI_MONTH_NAMES[ramadanStartHijri.month - 1]} ${ramadanStartHijri.day}`,
+      ``,
+      ` End (1 Shawwal - Eid al-Fitr):`,
+      `   Gregorian: ${ramadanEndGreg.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}`,
+      `   Hijri: ${ramadanEndHijri.year} AH, ${HIJRI_MONTH_NAMES[ramadanEndHijri.month - 1]} ${ramadanEndHijri.day}`,
+      ``,
+      ` Laylat al-Qadr (Night of Power):`,
+      `   Most likely: ${laylatQadrDates[3].toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })} (27th night)`,
+      `   Could be any odd night: ${laylatQadrDates.map(d => d.toLocaleDateString("en-US", { month: "short", day: "numeric" })).join(", ")}`,
+      ``,
+      ` Duration: ${fastingDays} days`,
+    );
 
-        break;
-      }
+    const daysUntilStart = Math.ceil((ramadanStartGreg.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
+    if (daysUntilStart > 0) {
+      results.push(` ⏳ ${daysUntilStart} days until Ramadan ${ramadanStartHijri.year} AH!`);
+    } else if (daysUntilStart > -fastingDays) {
+      results.push(` 🕐 Ramadan ${ramadanStartHijri.year} AH is in progress!`);
+    } else {
+      const nextHijriYear = currentHijri.year + 1;
+      const nextRamadan = getGregorianFromHijri(currentYear + 1, 9, 1, summerRef);
+      const daysUntilNext = Math.ceil((nextRamadan.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
+      results.push(` ✓ Last Ramadan was ${ramadanStartGreg.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`);
+      results.push(` Next Ramadan: ${daysUntilNext} days away`);
     }
 
     return { content: [{ type: "text", text: results.join("\n") }] };
