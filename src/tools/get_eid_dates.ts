@@ -14,36 +14,21 @@ export async function execute(params: { year?: number; count?: number }) {
   const yearCount = Math.min(params.count || 3, 10);
 
   const lines = [
-    `**Eid Calendar Dates**`,
-    `Generated: ${now.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}`,
+    `**Eid Calendar Dates (predicted — subject to moon sighting)**`,
     ``,
   ];
 
   for (let y = currentYear; y < currentYear + yearCount; y++) {
-    const eidFitr = moment(`${y}-10-01`, "iYYYY-iMM-DD");
-    const eidAdha = moment(`${y}-12-10`, "iYYYY-iMM-DD");
-    
-    const eidFitrGreg = eidFitr.toDate();
-    const eidAdhaGreg = eidAdha.toDate();
+    const hijriBase = moment().iYear();
+    const offset = y - now.getFullYear();
 
-    const eFYear = eidFitr.iYear();
-    const eAMonth = eidFitr.iMonth();
-    const eADay = eidFitr.iDate();
-    
-    const aHYear = eidAdha.iYear();
-    const aAMonth = eidAdha.iMonth();
-    const aADay = eidAdha.iDate();
+    const fitrHijri = moment(`${hijriBase + offset}-10-01`, "iYYYY-iMM-iDD");
+    const adhaHijri = moment(`${hijriBase + offset}-12-10`, "iYYYY-iMM-iDD");
 
     lines.push(
       `=== ${y} ===`,
-      ``,
-      `Eid al-Fitr (عيدالفطر):`,
-      `   Gregorian: ${eidFitr.format("dddd, MMMM D, YYYY")}`,
-      `   Hijri: ${eFYear} AH, ${eidFitr.format("iMMMM")} ${eADay}`,
-      ``,
-      `Eid al-Adha (عيدالأضحى):`,
-      `   Gregorian: ${eidAdha.format("dddd, MMMM D, YYYY")}`,
-      `   Hijri: ${aHYear} AH, ${eidAdha.format("iMMMM")} ${aADay}`,
+      `Eid al-Fitr: ${fitrHijri.format("dddd, MMMM D, YYYY")} (1 Shawwal ${fitrHijri.iYear()} AH)`,
+      `Eid al-Adha: ${adhaHijri.format("dddd, MMMM D, YYYY")} (10 Dhu al-Hijjah ${adhaHijri.iYear()} AH)`,
       ``,
     );
   }

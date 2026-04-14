@@ -10,17 +10,18 @@ export const description = "Get Ramadan dates and Laylat al-Qadr estimates";
 export async function execute(params: { year?: number }) {
   const now = new Date();
   const year = params.year || now.getFullYear();
-  const currentHijri = { year: moment(now).iYear(), month: moment(now).iMonth() + 1 };
+  const currentHijriYear = moment(now).iYear();
 
   const lines = [
     `**Ramadan Calendar ${year}**`,
     ``,
   ];
 
-  for (let hYear = currentHijri.year - 1; hYear <= currentHijri.year + 1; hYear++) {
-    const ramadanStart = moment(`${hYear}-09-01`, "iYYYY-iMM-DD");
-    const ramadanEnd = moment(`${hYear}-10-01`, "iYYYY-iMM-DD");
-    
+  for (let offset = -1; offset <= 1; offset++) {
+    const hYear = currentHijriYear + offset;
+    const ramadanStart = moment(`${hYear}-09-01`, "iYYYY-iMM-iDD");
+    const ramadanEnd = moment(`${hYear}-10-01`, "iYYYY-iMM-iDD");
+
     if (ramadanStart.year() === year || ramadanStart.year() === year - 1 || ramadanStart.year() === year + 1) {
       const startGreg = ramadanStart.toDate();
       const endGreg = ramadanEnd.toDate();
