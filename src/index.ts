@@ -863,6 +863,248 @@ server.tool(
   }
 );
 
+server.tool(
+  "get_islamic_events",
+  "Get upcoming Islamic events (Eid al-Fitr, Eid al-Adha, Ramadan, Ashura, Laylat al-Qadr, Hijri New Year, etc.) with both Hijri and Gregorian dates. Shows events for the current and next Hijri year.",
+  {
+    year: z.number().optional().describe("Hijri year (default: current)"),
+  },
+  async ({ year }) => {
+    const now = moment();
+    const hijriYear = year || now.iYear();
+
+    const islamicEvents: { name: string; hijriMonth: number; hijriDay: number; description: string }[] = [
+      { name: "Hijri New Year", hijriMonth: 1, hijriDay: 1, description: "Start of the new Hijri year" },
+      { name: "Ashura", hijriMonth: 1, hijriDay: 10, description: "Day of mourning/remembrance (10th of Muharram)" },
+      { name: "Mawlid al-Nabi", hijriMonth: 3, hijriDay: 12, description: "Prophet's birthday (12th of Rabi al-Awwal)" },
+      { name: "Laylat al-Mi'raj", hijriMonth: 7, hijriDay: 27, description: "Night Journey and Ascension (27th of Rajab)" },
+      { name: "Laylat al-Qadr", hijriMonth: 9, hijriDay: 27, description: "Night of Power - likely (27th of Ramadan)" },
+      { name: "Eid al-Fitr", hijriMonth: 10, hijriDay: 1, description: "Festival of Breaking Fast (1st of Shawwal)" },
+      { name: "Eid al-Adha", hijriMonth: 12, hijriDay: 10, description: "Festival of Sacrifice (10th of Dhu al-Hijjah)" },
+      { name: "Day of Tarwiyah", hijriMonth: 12, hijriDay: 8, description: "Day of饮水 (8th of Dhu al-Hijjah)" },
+      { name: "Arafat Day", hijriMonth: 12, hijriDay: 9, description: "Day at Arafat (9th of Dhu al-Hijjah)" },
+    ];
+
+    const results: string[] = [
+      `**Islamic Calendar Events**`,
+      `Hijri Year: ${hijriYear} AH`,
+      ``,
+    ];
+
+    for (const evt of islamicEvents) {
+      const hijriDate = moment(`${hijriYear}-${evt.hijriMonth.toString().padStart(2, "0")}-${evt.hijriDay.toString().padStart(2, "0")}`, "iYYYY-iMM-iDD");
+      
+      let gregDate: Date;
+      let yearLabel: string;
+      
+      if (hijriDate.isValid() && hijriDate.iYear() === hijriYear) {
+        gregDate = hijriDate.toDate();
+        yearLabel = hijriYear.toString();
+      } else {
+        const nextYearDate = moment(`${hijriYear + 1}-${evt.hijriMonth.toString().padStart(2, "0")}-${evt.hijriDay.toString().padStart(2, "0")}`, "iYYYY-iMM-iDD");
+        gregDate = nextYearDate.toDate();
+        yearLabel = `${hijriYear + 1}`;
+      }
+
+      const hParts = getHijriDateParts(moment(gregDate));
+      const isPast = gregDate < now.toDate();
+      const daysUntil = Math.ceil((gregDate.getTime() - now.toDate().getTime()) / 86400000);
+
+      results.push(
+        `${isPast ? "✓" : "○"} ${evt.name}`,
+        `   Hijri: ${hParts.year} AH, ${HIJRI_MONTH_NAMES[hParts.month - 1]} ${hParts.day}`,
+        `   Gregorian: ${gregDate.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" })}`,
+        `   ${daysUntil < 0 ? Math.abs(daysUntil) + " days ago" : daysUntil === 0 ? "Today" : daysUntil + " days away"}`,
+        `   ${evt.description}`,
+        ``,
+      );
+    }
+
+    return { content: [{ type: "text", text: results.join("\n") }] };
+  }
+);
+
+server.tool(
+  "get_eid_dates",
+  "Get exact dates for Eid al-Fitr and Eid al-Adha for a specific year or range of years. Returns both Hijri and Gregorian dates.",
+  {
+    year: z.number().optional().describe("Gregorian year (default: current)"),
+    range: z.number().optional().describe("Number of years to show (default: 3)"),
+  },
+  async ({ year, range }) => {
+    const currentYear = year || new Date().getFullYear();
+    const yearRange = range || 3;
+    const now = moment();
+
+    const results: string[] = [
+      `**Eid Calendar Dates**`,
+      `Showing ${yearRange} years`,
+      ``,
+    ];
+
+    for (let y = currentYear; y < currentYear + yearRange; y++) {
+      results.push(`=== ${y} ===`);
+      
+      for (let hYear = y - 580; hYear <= y + 1; hYear++) {
+        const eidFitr = moment(`${hYear}-10-01`, "iYYYY-iMM-iDD");
+        const eidAdha = moment(`${hYear}-12-10`, "iYYYY-iMM-iDD");
+
+        if (eidFitr.year() === y) {
+          const fp = getHijriDateParts(eidFitr);
+          results.push(
+            `Eid al-Fitr: ${eidFitr.format("dddd, MMMM D, YYYY")} (Gregorian)`,
+            `             ${fp.year} AH, ${HIJRI_MONTH_NAMES[fp.month - 1]} ${fp.day} (Hijri)`,
+          );
+          results.push(``);
+          break;
+        }
+
+        if (eidAdha.year() === y) {
+          const ap = getHijriDateParts(eidAdha);
+          results.push(
+            `Eid al-Adha: ${eidAdha.format("dddd, MMMM D, YYYY")} (Gregorian)`,
+            `              ${ap.year} AH, ${HIJRI_MONTH_NAMES[ap.month - 1]} ${ap.day} (Hijri)`,
+          );
+          results.push(``);
+          break;
+        }
+      }
+    }
+
+    return { content: [{ type: "text", text: results.join("\n") }] };
+  }
+);
+
+server.tool(
+  "get_holidays_worldwide",
+  "Get popular holidays and observances worldwide by region/country. Includes religious, cultural, and national holidays.",
+  {
+    region: z.enum(["all", "middle_east", "europe", "asia", "americas", "oceania"]).default("all"),
+    year: z.number().optional().describe("Gregorian year (default: current)"),
+  },
+  async ({ region, year }) => {
+    const currentYear = year || new Date().getFullYear();
+    const now = moment();
+
+    const holidays: { name: string; date: string; regions: string[]; type: string }[] = [
+      { name: "New Year's Day", date: "01-01", regions: ["all"], type: "Cultural" },
+      { name: "Valentine's Day", date: "02-14", regions: ["all", "europe", "americas", "asia"], type: "Cultural" },
+      { name: "Nowruz", date: "03-20", regions: ["middle_east", "asia"], type: "Persian New Year" },
+      { name: "Holi", date: "03-14", regions: ["asia"], type: "Hindu Festival" },
+      { name: "Easter Sunday", date: "04-20", regions: ["europe", "americas", "oceania"], type: "Christian" },
+      { name: "Good Friday", date: "04-18", regions: ["europe", "americas", "oceania"], type: "Christian" },
+      { name: "Easter Monday", date: "04-21", regions: ["europe"], type: "Christian" },
+      { name: "Ramadan Start", date: "03-01", regions: ["middle_east", "asia", "europe"], type: "Islamic" },
+      { name: "Eid al-Fitr", date: "04-01", regions: ["middle_east", "asia", "europe", "americas"], type: "Islamic" },
+      { name: "Eid al-Adha", date: "06-07", regions: ["middle_east", "asia", "europe", "americas"], type: "Islamic" },
+      { name: "Diwali", date: "11-01", regions: ["asia"], type: "Hindu Festival" },
+      { name: "Christmas Day", date: "12-25", regions: ["all", "europe", "americas", "oceania"], type: "Christian" },
+      { name: "Boxing Day", date: "12-26", regions: ["europe", "oceania"], type: "Cultural" },
+      { name: "Independence Day (Pakistan)", date: "08-14", regions: ["middle_east"], type: "National" },
+      { name: "National Day (Saudi Arabia)", date: "09-23", regions: ["middle_east"], type: "National" },
+      { name: "UAE National Day", date: "12-02", regions: ["middle_east"], type: "National" },
+      { name: "Qatar National Day", date: "12-18", regions: ["middle_east"], type: "National" },
+      { name: "Bastille Day", date: "07-14", regions: ["europe"], type: "National" },
+      { name: "German Unity Day", date: "10-03", regions: ["europe"], type: "National" },
+      { name: "Thanksgiving", date: "11-27", regions: ["americas"], type: "Cultural" },
+      { name: "Independence Day (US)", date: "07-04", regions: ["americas"], type: "National" },
+      { name: "Independence Day (India)", date: "08-15", regions: ["asia"], type: "National" },
+      { name: "Australia Day", date: "01-26", regions: ["oceania"], type: "National" },
+      { name: "Waitangi Day", date: "02-06", regions: ["oceania"], type: "National" },
+      { name: "Chinese New Year", date: "01-29", regions: ["asia"], type: "Cultural" },
+      { name: "Songkran", date: "04-13", regions: ["asia"], type: "Cultural" },
+      { name: "Thaipusam", date: "01-25", regions: ["asia"], type: "Hindu Festival" },
+      { name: "Vaisakhi", date: "04-13", regions: ["asia"], type: "Sikh Festival" },
+      { name: "Buddha Purnima", date: "05-23", regions: ["asia"], type: "Buddhist" },
+      { name: "Wesak", date: "05-23", regions: ["asia", "oceania"], type: "Buddhist" },
+      { name: "Laba Festival", date: "01-15", regions: ["asia"], type: "Cultural" },
+      { name: "Lantern Festival", date: "02-12", regions: ["asia"], type: "Cultural" },
+      { name: "Day of the Dead", date: "11-02", regions: ["americas"], type: "Cultural" },
+      { name: "Daylight Saving Start", date: "03-09", regions: ["americas", "oceania"], type: "Seasonal" },
+      { name: "Daylight Saving End", date: "11-02", regions: ["americas", "oceania"], type: "Seasonal" },
+    ];
+
+    const selected = region === "all" ? holidays : holidays.filter(h => h.regions.includes("all") || h.regions.includes(region));
+
+    const results: string[] = [
+      `**Worldwide Holidays & Events ${currentYear}**`,
+      `Region: ${region === "all" ? "All Regions" : region.replace("_", " ").toUpperCase()}`,
+      ``,
+    ];
+
+    for (const holiday of selected) {
+      const [month, day] = holiday.date.split("-").map(Number);
+      const date = new Date(currentYear, month - 1, day);
+      const isPast = date < now.toDate();
+      const daysUntil = Math.ceil((date.getTime() - now.toDate().getTime()) / 86400000);
+
+      results.push(
+        `${isPast ? "✓" : "○"} ${holiday.name}`,
+        `   Date: ${date.toLocaleDateString("en-US", { month: "long", day: "numeric", weekday: "short" })}`,
+        `   Type: ${holiday.type}`,
+        `   ${daysUntil < 0 ? Math.abs(daysUntil) + " days ago" : daysUntil === 0 ? "Today!" : daysUntil + " days away"}`,
+        ``,
+      );
+    }
+
+    return { content: [{ type: "text", text: results.join("\n") }] };
+  }
+);
+
+server.tool(
+  "get_ramadan_times",
+  "Get Ramadan period (start and end dates) for a specific year with both Hijri and Gregorian dates. Also returns Laylat al-Qadr estimates.",
+  {
+    year: z.number().optional().describe("Gregorian year (default: current)"),
+  },
+  async ({ year }) => {
+    const currentYear = year || new Date().getFullYear();
+    const now = moment();
+
+    const results: string[] = [
+      `**Ramadan Calendar ${currentYear}**`,
+      ``,
+    ];
+
+    for (let hYear = currentYear - 580; hYear <= currentYear + 1; hYear++) {
+      const ramadanStart = moment(`${hYear}-09-01`, "iYYYY-iMM-iDD");
+      const ramadanEnd = moment(`${hYear}-10-01`, "iYYYY-iMM-iDD");
+
+      if (ramadanStart.year() === currentYear) {
+        const startParts = getHijriDateParts(ramadanStart);
+        const endParts = getHijriDateParts(ramadanEnd);
+
+        results.push(
+          `Ramadan ${startParts.year} AH:`,
+          ` Start: ${ramadanStart.format("dddd, MMMM D, YYYY")} (Gregorian)`,
+          `       ${startParts.month}/${startParts.day}/${startParts.year} AH (Hijri)`,
+          ` End:  ${ramadanEnd.format("dddd, MMMM D, YYYY")} (Gregorian)`,
+          `       ${endParts.month}/${endParts.day}/${endParts.year} AH (Hijri)`,
+          ``,
+          ` Laylat al-Qadr (Night of Power):`,
+          `   Likely: ${ramadanStart.clone().add(26, "days").format("dddd, MMMM D, YYYY")} (27th night)`,
+          `   Could be any odd night: 21st, 23rd, 25th, 27th, or 29th`,
+          ``,
+          ` Fasting days: approximately ${ramadanStart.clone().diff(ramadanEnd, "days")} days`,
+        );
+
+        const daysUntilStart = Math.ceil((ramadanStart.toDate().getTime() - now.toDate().getTime()) / 86400000);
+        if (daysUntilStart > 0) {
+          results.push(` ${daysUntilStart} days until Ramadan!`);
+        } else if (daysUntilStart > -30) {
+          results.push(` Ramadan is in progress!`);
+        } else {
+          results.push(` Last Ramadan: ${ramadanStart.format("MMM D, YYYY")}`);
+        }
+
+        break;
+      }
+    }
+
+    return { content: [{ type: "text", text: results.join("\n") }] };
+  }
+);
+
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
