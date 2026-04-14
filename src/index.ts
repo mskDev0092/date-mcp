@@ -864,40 +864,17 @@ server.tool(
 );
 
 function getHijriMonthFromDate(date: Date): { year: number; month: number; day: number } {
-  const now = new Date();
-  let newMoon = Astro.SearchMoonPhase(0, new Date(now.getFullYear(), 0, 1), 400);
-  const targetTime = date.getTime();
-  
-  while (newMoon.date.getTime() < targetTime - 30 * 24 * 60 * 60 * 1000) {
-    newMoon = Astro.SearchMoonPhase(0, new Date(newMoon.date.getTime() + 25 * 24 * 60 * 60 * 1000), 30);
-  }
-  
-  while (newMoon.date.getTime() < targetTime) {
-    newMoon = Astro.SearchMoonPhase(0, new Date(newMoon.date.getTime() + 25 * 24 * 60 * 60 * 1000), 30);
-  }
-  
-  const firstDayOfMuharram = newMoon.date;
-  const daysSinceMuharram = Math.floor((targetTime - firstDayOfMuharram.getTime()) / (24 * 60 * 60 * 1000));
-  const hijriYear = Math.floor(daysSinceMuharram / 29.53) + 1;
-  const daysInYear = daysSinceMuharram % (29.53 * 12);
-  const hijriMonth = Math.floor(daysInYear / 29.53) + 1;
-  const hijriDay = Math.floor(daysInYear % 29.53) + 1;
-  
-  return { year: hijriYear, month: hijriMonth, day: hijriDay };
+  const m = moment(date);
+  return {
+    year: m.iYear(),
+    month: m.iMonth() + 1,
+    day: m.iDate(),
+  };
 }
 
-function getGregorianFromHijri(hijriYear: number, hijriMonth: number, hijriDay: number, referenceDate: Date): Date {
-  const now = new Date();
-  let newMoon = Astro.SearchMoonPhase(0, new Date(now.getFullYear() - 1, 0, 1), 400);
-  
-  const targetDays = (hijriYear - 1) * 354.36 + (hijriMonth - 1) * 29.53 + hijriDay - 1;
-  
-  while (newMoon.date.getTime() < now.getTime() - 365 * 24 * 60 * 60 * 1000 * 2) {
-    newMoon = Astro.SearchMoonPhase(0, new Date(newMoon.date.getTime() + 25 * 24 * 60 * 60 * 1000), 30);
-  }
-  
-  const targetTime = newMoon.date.getTime() + targetDays * 24 * 60 * 60 * 1000;
-  return new Date(targetTime);
+function getGregorianFromHijri(hijriYear: number, hijriMonth: number, hijriDay: number): Date {
+  const m = moment(`${hijriYear}-${String(hijriMonth).padStart(2, "0")}-${String(hijriDay).padStart(2, "0")}`, "iYYYY-iMM-iDD");
+  return m.toDate();
 }
 
 server.tool(
@@ -933,8 +910,7 @@ server.tool(
     ];
 
     for (const evt of islamicEvents) {
-      const baseRef = new Date(now.getFullYear(), 6, 1);
-      let gregDate = getGregorianFromHijri(hijriYear, evt.hijriMonth, evt.hijriDay, baseRef);
+      let gregDate = getGregorianFromHijri(hijriYear, evt.hijriMonth, evt.hijriDay);
       
       const computedHijri = getHijriMonthFromDate(gregDate);
       
@@ -974,12 +950,10 @@ server.tool(
     ];
 
     for (let y = currentYear; y < currentYear + yearCount; y++) {
-      const summerRef = new Date(y, 6, 1);
-      
-      const eidFitrGreg = getGregorianFromHijri(y, 10, 1, summerRef);
+      const eidFitrGreg = getGregorianFromHijri(y, 10, 1);
       const eidFitrHijri = getHijriMonthFromDate(eidFitrGreg);
       
-      const eidAdhaGreg = getGregorianFromHijri(y, 12, 10, new Date(y, 11, 1));
+      const eidAdhaGreg = getGregorianFromHijri(y, 12, 10);
       const eidAdhaHijri = getHijriMonthFromDate(eidAdhaGreg);
 
       results.push(
@@ -1094,17 +1068,15 @@ server.tool(
       ``,
     ];
 
-    const summerRef = new Date(currentYear, 5, 1);
-    
-    const ramadanStartGreg = getGregorianFromHijri(currentYear, 9, 1, summerRef);
-    const ramadanEndGreg = getGregorianFromHijri(currentYear, 10, 1, new Date(currentYear, 6, 1));
+    const ramadanStartGreg = getGregorianFromHijri(currentYear, 9, 1);
+    const ramadanEndGreg = getGregorianFromHijri(currentYear, 10, 1);
     
     const ramadanStartHijri = getHijriMonthFromDate(ramadanStartGreg);
     const ramadanEndHijri = getHijriMonthFromDate(ramadanEndGreg);
 
     const laylatQadrPossible = [21, 23, 25, 27, 29];
     const laylatQadrDates = laylatQadrPossible.map(d => 
-      getGregorianFromHijri(currentYear, 9, d, summerRef)
+      getGregorianFromHijri(currentYear, 9, d)
     );
 
     const fastingDays = Math.ceil((ramadanEndGreg.getTime() - ramadanStartGreg.getTime()) / (24 * 60 * 60 * 1000));
@@ -1134,7 +1106,7 @@ server.tool(
       results.push(` 🕐 Ramadan ${ramadanStartHijri.year} AH is in progress!`);
     } else {
       const nextHijriYear = currentHijri.year + 1;
-      const nextRamadan = getGregorianFromHijri(currentYear + 1, 9, 1, summerRef);
+      const nextRamadan = getGregorianFromHijri(currentYear + 1, 9, 1);
       const daysUntilNext = Math.ceil((nextRamadan.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
       results.push(` ✓ Last Ramadan was ${ramadanStartGreg.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`);
       results.push(` Next Ramadan: ${daysUntilNext} days away`);
